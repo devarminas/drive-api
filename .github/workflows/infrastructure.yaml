@@ -3,9 +3,6 @@ name: Infrastructure
 on:
     pull_request:
         branches: [main, develop]
-        paths:
-            - "deploy/infrastructure/**"
-            - ".github/workflows/infrastructure.yaml"
     workflow_dispatch:
         inputs:
             action:
