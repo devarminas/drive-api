@@ -77,23 +77,29 @@ module "iam" {
   secrets_manager_arns = [module.rds.master_user_secret_arn]
   s3_bucket_arns       = [module.s3_cloudfront.bucket_arn]
   sqs_queue_arns       = [module.s3_cloudfront.sqs_queue_arn]
+  ecr_repository_arns  = [data.aws_ecr_repository.app.arn]
   tags                 = local.common_tags
 }
 
-# App Runner Module
-module "apprunner" {
-  source = "../modules/apprunner"
+# ECS Module
+module "ecs" {
+  source = "../modules/ecs"
 
-  service_name        = "drive-api-${local.environment}"
-  image_repository    = data.aws_ecr_repository.app.repository_url
-  image_tag           = var.image_tag
-  ecr_access_role_arn = module.iam.apprunner_ecr_access_role_arn
-  instance_role_arn   = module.iam.apprunner_instance_role_arn
-  subnet_ids          = module.vpc.private_subnet_ids
-  security_group_ids  = [module.rds.security_group_id]
-  cpu                 = "512"
-  memory              = "1024"
-  port                = "3000"
+  cluster_name         = "drive-api-${local.environment}"
+  service_name         = "drive-api-${local.environment}"
+  container_name       = "drive-api"
+  vpc_id               = module.vpc.vpc_id
+  public_subnet_ids    = module.vpc.public_subnet_ids
+  private_subnet_ids   = module.vpc.private_subnet_ids
+  image_repository     = data.aws_ecr_repository.app.repository_url
+  image_tag            = var.image_tag
+  container_port       = 3000
+  cpu                  = "512"
+  memory               = "1024"
+  desired_count        = 1
+  health_check_path    = "/health"
+  execution_role_arn   = module.iam.ecs_execution_role_arn
+  task_role_arn        = module.iam.ecs_task_role_arn
 
   environment_variables = {
     DB_SECRET_ARN     = module.rds.master_user_secret_arn

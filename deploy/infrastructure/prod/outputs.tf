@@ -20,13 +20,17 @@ output "db_port" {
   value = module.rds.db_port
 }
 
-# App Runner Outputs
-output "app_service_url" {
-  value = module.apprunner.service_url
+# ECS Outputs
+output "ecs_cluster_id" {
+  value = module.ecs.cluster_id
 }
 
-output "app_service_arn" {
-  value = module.apprunner.service_arn
+output "ecs_service_name" {
+  value = module.ecs.service_name
+}
+
+output "load_balancer_dns_name" {
+  value = module.ecs.load_balancer_dns_name
 }
 
 # S3 CloudFront Outputs

@@ -12,6 +12,10 @@ on:
 env:
   AWS_REGION: eu-central-1
   ECR_REPOSITORY: arminasdev/drive-api
+  ECS_SERVICE: drive-api-prod
+  ECS_CLUSTER: drive-api-prod
+  ECS_TASK_DEFINITION: deploy/ecs/prod-task-definition.json
+  CONTAINER_NAME: drive-api
 
 jobs:
   version:
@@ -117,11 +121,14 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -var="image_tag=${{ needs.version.outputs.semVer }}" -auto-approve -no-color
 
-  deploy-apprunner:
+  deploy-ecs:
     needs: [version, build-and-push, deploy-infrastructure]
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -129,18 +136,18 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Update App Runner service
-        run: |
-          # Get the service ARN
-          SERVICE_ARN=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='drive-api-prod'].ServiceArn" --output text)
-          
-          if [ -n "$SERVICE_ARN" ]; then
-            echo "Updating App Runner service: $SERVICE_ARN"
-            aws apprunner start-deployment --service-arn $SERVICE_ARN
-            
-            # Wait for deployment to complete
-            aws apprunner wait --max-attempts 30 --delay 30 \
-              service-deployment-finished --service-arn $SERVICE_ARN
-          else
-            echo "App Runner service not found - infrastructure deployment will handle this"
-          fi
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ env.ECS_TASK_DEFINITION }}
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ needs.build-and-push.outputs.image-url }}
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true

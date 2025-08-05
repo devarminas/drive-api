@@ -1,6 +1,6 @@
-# App Runner ECR Access Role
-resource "aws_iam_role" "apprunner_ecr_access" {
-  name = "drive-api-${var.environment}-apprunner-ecr-role"
+# ECS Task Execution Role
+resource "aws_iam_role" "ecs_execution" {
+  name = "drive-api-${var.environment}-ecs-execution-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -9,7 +9,7 @@ resource "aws_iam_role" "apprunner_ecr_access" {
         Action = "sts:AssumeRole"
         Effect = "Allow"
         Principal = {
-          Service = "build.apprunner.amazonaws.com"
+          Service = "ecs-tasks.amazonaws.com"
         }
       }
     ]
@@ -18,10 +18,16 @@ resource "aws_iam_role" "apprunner_ecr_access" {
   tags = var.tags
 }
 
-# ECR Access Policy
-resource "aws_iam_role_policy" "apprunner_ecr_access" {
+# Attach AWS managed policy for ECS task execution
+resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy" {
+  role       = aws_iam_role.ecs_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# ECR Access Policy for ECS Execution Role
+resource "aws_iam_role_policy" "ecs_execution_ecr_access" {
   name = "ECRAccess"
-  role = aws_iam_role.apprunner_ecr_access.id
+  role = aws_iam_role.ecs_execution.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -46,9 +52,9 @@ resource "aws_iam_role_policy" "apprunner_ecr_access" {
   })
 }
 
-# App Runner Instance Role (for runtime permissions)
-resource "aws_iam_role" "apprunner_instance" {
-  name = "drive-api-${var.environment}-apprunner-instance-role"
+# ECS Task Role (for runtime permissions)
+resource "aws_iam_role" "ecs_task" {
+  name = "drive-api-${var.environment}-ecs-task-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -57,7 +63,7 @@ resource "aws_iam_role" "apprunner_instance" {
         Action = "sts:AssumeRole"
         Effect = "Allow"
         Principal = {
-          Service = "tasks.apprunner.amazonaws.com"
+          Service = "ecs-tasks.amazonaws.com"
         }
       }
     ]
@@ -66,10 +72,10 @@ resource "aws_iam_role" "apprunner_instance" {
   tags = var.tags
 }
 
-# Instance Role Policy for Secrets Manager
-resource "aws_iam_role_policy" "apprunner_secrets_access" {
+# Task Role Policy for Secrets Manager
+resource "aws_iam_role_policy" "ecs_secrets_access" {
   name = "SecretsManagerAccess"
-  role = aws_iam_role.apprunner_instance.id
+  role = aws_iam_role.ecs_task.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -85,11 +91,11 @@ resource "aws_iam_role_policy" "apprunner_secrets_access" {
   })
 }
 
-# Instance Role Policy for S3 Access
-resource "aws_iam_role_policy" "apprunner_s3_access" {
+# Task Role Policy for S3 Access
+resource "aws_iam_role_policy" "ecs_s3_access" {
   count = length(var.s3_bucket_arns) > 0 ? 1 : 0
   name  = "S3Access"
-  role  = aws_iam_role.apprunner_instance.id
+  role  = aws_iam_role.ecs_task.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -111,11 +117,11 @@ resource "aws_iam_role_policy" "apprunner_s3_access" {
   })
 }
 
-# Instance Role Policy for SQS Access
-resource "aws_iam_role_policy" "apprunner_sqs_access" {
+# Task Role Policy for SQS Access
+resource "aws_iam_role_policy" "ecs_sqs_access" {
   count = length(var.sqs_queue_arns) > 0 ? 1 : 0
   name  = "SQSAccess"
-  role  = aws_iam_role.apprunner_instance.id
+  role  = aws_iam_role.ecs_task.id
 
   policy = jsonencode({
     Version = "2012-10-17"

@@ -1,0 +1,36 @@
+{
+    "family": "drive-api-dev",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": ["FARGATE"],
+    "cpu": "512",
+    "memory": "1024",
+    "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/drive-api-dev-ecs-execution-role",
+    "taskRoleArn": "arn:aws:iam::ACCOUNT_ID:role/drive-api-dev-ecs-task-role",
+    "containerDefinitions": [
+        {
+            "name": "drive-api",
+            "image": "ACCOUNT_ID.dkr.ecr.eu-central-1.amazonaws.com/arminasdev/drive-api:IMAGE_TAG",
+            "portMappings": [
+                {
+                    "containerPort": 3000,
+                    "protocol": "tcp"
+                }
+            ],
+            "essential": true,
+            "environment": [
+                {
+                    "name": "ENVIRONMENT",
+                    "value": "dev"
+                }
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/drive-api-dev",
+                    "awslogs-region": "eu-central-1",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            }
+        }
+    ]
+}

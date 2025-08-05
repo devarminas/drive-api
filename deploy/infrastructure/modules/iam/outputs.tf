@@ -1,9 +1,9 @@
-output "apprunner_ecr_access_role_arn" {
-  description = "ARN of the App Runner ECR access role"
-  value       = aws_iam_role.apprunner_ecr_access.arn
+output "ecs_execution_role_arn" {
+  description = "ARN of the ECS task execution role"
+  value       = aws_iam_role.ecs_execution.arn
 }
 
-output "apprunner_instance_role_arn" {
-  description = "ARN of the App Runner instance role"
-  value       = aws_iam_role.apprunner_instance.arn
+output "ecs_task_role_arn" {
+  description = "ARN of the ECS task role"
+  value       = aws_iam_role.ecs_task.arn
 }
