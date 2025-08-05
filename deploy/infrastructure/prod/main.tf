@@ -40,6 +40,7 @@ data "aws_ecr_repository" "app" {
 module "vpc" {
   source = "../modules/vpc"
 
+  vpc_name             = "drive-api-${local.environment}"
   availability_zones   = slice(data.aws_availability_zones.available.names, 0, 3)
   public_subnet_cidrs  = ["10.1.1.0/24", "10.1.2.0/24", "10.1.3.0/24"]
   private_subnet_cidrs = ["10.1.11.0/24", "10.1.12.0/24", "10.1.13.0/24"]

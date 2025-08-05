@@ -40,6 +40,7 @@ data "aws_ecr_repository" "app" {
 module "vpc" {
   source = "../modules/vpc"
 
+  vpc_name             = "drive-api-${local.environment}"
   availability_zones   = slice(data.aws_availability_zones.available.names, 0, 2)
   public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
   private_subnet_cidrs = ["10.0.11.0/24", "10.0.12.0/24"]
@@ -85,21 +86,21 @@ module "iam" {
 module "ecs" {
   source = "../modules/ecs"
 
-  cluster_name         = "drive-api-${local.environment}"
-  service_name         = "drive-api-${local.environment}"
-  container_name       = "drive-api"
-  vpc_id               = module.vpc.vpc_id
-  public_subnet_ids    = module.vpc.public_subnet_ids
-  private_subnet_ids   = module.vpc.private_subnet_ids
-  image_repository     = data.aws_ecr_repository.app.repository_url
-  image_tag            = var.image_tag
-  container_port       = 3000
-  cpu                  = "512"
-  memory               = "1024"
-  desired_count        = 1
-  health_check_path    = "/health"
-  execution_role_arn   = module.iam.ecs_execution_role_arn
-  task_role_arn        = module.iam.ecs_task_role_arn
+  cluster_name       = "drive-api-${local.environment}"
+  service_name       = "drive-api-${local.environment}"
+  container_name     = "drive-api"
+  vpc_id             = module.vpc.vpc_id
+  public_subnet_ids  = module.vpc.public_subnet_ids
+  private_subnet_ids = module.vpc.private_subnet_ids
+  image_repository   = data.aws_ecr_repository.app.repository_url
+  image_tag          = var.image_tag
+  container_port     = 3000
+  cpu                = "512"
+  memory             = "1024"
+  desired_count      = 1
+  health_check_path  = "/health"
+  execution_role_arn = module.iam.ecs_execution_role_arn
+  task_role_arn      = module.iam.ecs_task_role_arn
 
   environment_variables = {
     DB_SECRET_ARN     = module.rds.master_user_secret_arn
