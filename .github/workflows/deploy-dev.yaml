@@ -3,10 +3,8 @@ name: Deploy Dev
 on:
   push:
     branches: [develop]
-    paths-ignore:
-      - "**.md"
-      - ".github/workflows/ci.yaml"
-      - ".github/workflows/infrastructure.yaml"
+  pull_request:
+    branches: [develop]
   workflow_dispatch: {}
 
 env:
