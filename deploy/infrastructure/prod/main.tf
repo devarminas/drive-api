@@ -3,15 +3,14 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = "~> 6.0"
     }
   }
 
   backend "s3" {
-    # Configure your backend here
-    # bucket = "your-terraform-state-bucket"
-    # key    = "drive-api/prod/terraform.tfstate"
-    # region = "eu-central-1"
+    bucket = "devarminas-terraform-state"
+    key    = "drive-api/prod/terraform.tfstate"
+    region = "eu-central-1"
   }
 }
 
@@ -33,6 +32,10 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
+data "aws_ecr_repository" "app" {
+  name = "arminasdev/drive-api"
+}
+
 # VPC Module
 module "vpc" {
   source = "../modules/vpc"
@@ -49,9 +52,10 @@ module "vpc" {
 module "rds" {
   source = "../modules/rds"
 
+  environment         = local.environment
   vpc_id              = module.vpc.vpc_id
   private_subnet_ids  = module.vpc.private_subnet_ids
-  db_name             = "drive_api_prod"
+  db_name             = "drive"
   db_username         = "postgres"
   publicly_accessible = false
   allowed_cidr_blocks = ["10.1.0.0/16"] # VPC CIDR
@@ -69,18 +73,38 @@ module "s3_cloudfront" {
   tags                   = local.common_tags
 }
 
+module "iam" {
+  source = "../modules/iam"
+
+  environment          = local.environment
+  secrets_manager_arns = [module.rds.master_user_secret_arn]
+  s3_bucket_arns       = [module.s3_cloudfront.bucket_arn]
+  sqs_queue_arns       = [module.s3_cloudfront.sqs_queue_arn]
+  tags                 = local.common_tags
+}
+
 # App Runner Module
 module "apprunner" {
   source = "../modules/apprunner"
 
   service_name        = "drive-api-${local.environment}"
-  image_repository    = "YOUR_ECR_REPOSITORY_URI" # Replace with your ECR URI
-  image_tag           = "latest"
-  ecr_access_role_arn = "YOUR_ECR_ACCESS_ROLE_ARN" # Replace with your existing role ARN
+  image_repository    = data.aws_ecr_repository.app.repository_url
+  image_tag           = var.image_tag
+  ecr_access_role_arn = module.iam.apprunner_ecr_access_role_arn
+  instance_role_arn   = module.iam.apprunner_instance_role_arn
   subnet_ids          = module.vpc.private_subnet_ids
   security_group_ids  = [module.rds.security_group_id]
   cpu                 = "1024"
   memory              = "2048"
   port                = "3000"
-  tags                = local.common_tags
+
+  environment_variables = {
+    DB_SECRET_ARN     = module.rds.master_user_secret_arn
+    S3_BUCKET_NAME    = module.s3_cloudfront.bucket_name
+    SQS_QUEUE_URL     = module.s3_cloudfront.sqs_queue_url
+    CLOUDFRONT_DOMAIN = module.s3_cloudfront.cloudfront_domain_name
+    ENVIRONMENT       = local.environment
+  }
+
+  tags = local.common_tags
 }

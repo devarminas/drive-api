@@ -8,10 +8,9 @@ terraform {
   }
 
   backend "s3" {
-    bucket       = "devarminas-terraform-state"
-    key          = "drive-api/dev/terraform.tfstate"
-    region       = "eu-central-1"
-    use_lockfile = true
+    bucket = "devarminas-terraform-state"
+    key    = "drive-api/dev/terraform.tfstate"
+    region = "eu-central-1"
   }
 }
 
@@ -87,7 +86,7 @@ module "apprunner" {
 
   service_name        = "drive-api-${local.environment}"
   image_repository    = data.aws_ecr_repository.app.repository_url
-  image_tag           = "0.0.1-test"
+  image_tag           = var.image_tag
   ecr_access_role_arn = module.iam.apprunner_ecr_access_role_arn
   instance_role_arn   = module.iam.apprunner_instance_role_arn
   subnet_ids          = module.vpc.private_subnet_ids

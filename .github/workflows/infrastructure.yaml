@@ -2,7 +2,7 @@ name: Infrastructure
 
 on:
     pull_request:
-        branches: [main]
+        branches: [main, develop]
         paths:
             - "deploy/infrastructure/**"
             - ".github/workflows/infrastructure.yaml"
@@ -23,8 +23,8 @@ on:
                 default: "dev"
                 type: choice
                 options:
-                    - common
                     - dev
+                    - prod
 
 env:
     AWS_REGION: eu-central-1
