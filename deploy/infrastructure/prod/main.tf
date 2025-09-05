@@ -11,6 +11,7 @@ terraform {
     bucket = "devarminas-terraform-state"
     key    = "drive-api/prod/terraform.tfstate"
     region = "eu-central-1"
+    dynamodb_table = "devarminas-terraform-locks"
   }
 }
 
@@ -97,11 +98,11 @@ module "ecs" {
   private_subnet_ids   = module.vpc.private_subnet_ids
   image_repository     = data.aws_ecr_repository.app.repository_url
   image_tag            = var.image_tag
-  container_port       = 3000
+  container_port       = 8080
   cpu                  = "1024"
   memory               = "2048"
   desired_count        = 2
-  health_check_path    = "/health"
+  health_check_path    = "/healthz"
   execution_role_arn   = module.iam.ecs_execution_role_arn
   task_role_arn        = module.iam.ecs_task_role_arn
 
@@ -112,6 +113,11 @@ module "ecs" {
     CLOUDFRONT_DOMAIN = module.s3_cloudfront.cloudfront_domain_name
     ENVIRONMENT       = local.environment
   }
+
+  # Keep tasks private in prod; NAT + endpoints handle egress
+  assign_public_ip = false
+  task_subnet_ids  = module.vpc.private_subnet_ids
+  prefer_fargate_spot = false
 
   tags = local.common_tags
 }

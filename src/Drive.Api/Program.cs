@@ -18,8 +18,16 @@ using Wolverine.Postgresql;
 var builder = WebApplication.CreateBuilder(args);
 
 // Configuration
-builder.Configuration.AddAmazonSecretsManager("eu-central-1", "rds!db-7632abcf-8a9e-4b8a-a497-3f23e20c3884");
-builder.Configuration.AddAmazonSecretsManager("eu-central-1", "drive-api");
+var awsRegion = Environment.GetEnvironmentVariable("AWS_REGION") ?? "eu-central-1";
+var dbSecretArnOrName = Environment.GetEnvironmentVariable("DB_SECRET_ARN");
+var appSecretsName = Environment.GetEnvironmentVariable("APP_SECRETS_NAME") ?? "drive-api";
+
+if (!string.IsNullOrWhiteSpace(dbSecretArnOrName))
+{
+    builder.Configuration.AddAmazonSecretsManager(awsRegion, dbSecretArnOrName);
+}
+
+builder.Configuration.AddAmazonSecretsManager(awsRegion, appSecretsName);
 var host = builder.Configuration["host"];
 var username = builder.Configuration["username"];
 var password = builder.Configuration["password"];

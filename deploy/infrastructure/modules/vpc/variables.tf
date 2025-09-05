@@ -32,6 +32,12 @@ variable "enable_nat_gateway" {
   default     = true
 }
 
+variable "enable_vpc_endpoints" {
+  description = "Whether to create VPC interface endpoints (ECR, etc.). These incur hourly charges."
+  type        = bool
+  default     = false
+}
+
 variable "tags" {
   description = "A map of tags to apply to all resources"
   type        = map(string)

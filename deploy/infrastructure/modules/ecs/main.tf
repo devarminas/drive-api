@@ -32,7 +32,7 @@ resource "aws_security_group" "ecs_tasks" {
     protocol    = "tcp"
     from_port   = var.container_port
     to_port     = var.container_port
-    cidr_blocks = ["0.0.0.0/0"]
+    security_groups = [aws_security_group.alb.id]
   }
 
   egress {
@@ -181,22 +181,32 @@ resource "aws_ecs_service" "this" {
   cluster         = aws_ecs_cluster.this.id
   task_definition = aws_ecs_task_definition.this.arn
   desired_count   = var.desired_count
+  deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
+  deployment_maximum_percent         = var.deployment_maximum_percent
 
-  capacity_provider_strategy {
-    capacity_provider = "FARGATE"
-    weight           = 100
+  dynamic "capacity_provider_strategy" {
+    for_each = var.prefer_fargate_spot ? ["FARGATE_SPOT"] : ["FARGATE"]
+    content {
+      capacity_provider = capacity_provider_strategy.value
+      weight            = 100
+    }
   }
 
   network_configuration {
     security_groups  = [aws_security_group.ecs_tasks.id]
-    subnets          = var.private_subnet_ids
-    assign_public_ip = false
+    subnets          = length(var.task_subnet_ids) > 0 ? var.task_subnet_ids : var.private_subnet_ids
+    assign_public_ip = var.assign_public_ip
   }
 
   load_balancer {
     target_group_arn = aws_lb_target_group.this.arn
     container_name   = var.container_name
     container_port   = var.container_port
+  }
+
+  deployment_circuit_breaker {
+    enable   = var.enable_deployment_circuit_breaker
+    rollback = var.enable_deployment_circuit_breaker
   }
 
   depends_on = [aws_lb_listener.this]
