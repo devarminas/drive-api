@@ -12,7 +12,6 @@ env:
   ECR_REPOSITORY: arminasdev/drive-api
   ECS_SERVICE: drive-api-dev
   ECS_CLUSTER: drive-api-dev
-  ECS_TASK_DEFINITION: deploy/ecs/dev-task-definition.json
   CONTAINER_NAME: drive-api
 
 jobs:
@@ -117,9 +116,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -127,16 +123,21 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Download task definition
+        run: |
+          aws ecs describe-task-definition --task-definition drive-api-dev \
+          --query taskDefinition > task-definition.json
+
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          task-definition: ${{ env.ECS_TASK_DEFINITION }}
+          task-definition: task-definition.json
           container-name: ${{ env.CONTAINER_NAME }}
           image: ${{ needs.build-and-push.outputs.image-url }}
 
       - name: Deploy Amazon ECS task definition
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
           service: ${{ env.ECS_SERVICE }}
