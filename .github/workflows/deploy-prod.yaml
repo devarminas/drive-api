@@ -8,6 +8,9 @@ on:
       - ".github/workflows/ci.yaml"
       - ".github/workflows/infrastructure.yaml"
   workflow_dispatch: {}
+permissions:
+  id-token: write
+  contents: read
 
 env:
   AWS_REGION: eu-central-1
