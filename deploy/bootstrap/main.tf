@@ -19,9 +19,9 @@ locals {
   project             = "drive-api"
   state_bucket_name   = "devarminas-terraform-state"
   lock_table_name     = "devarminas-terraform-locks"
-  ecr_repository_name = "arminasdev/drive-api"
+  ecr_repository_name = "devarminas/drive-api"
   oidc_provider_url   = "https://token.actions.githubusercontent.com"
-  github_repo_pattern = "repo:arminasdev/drive-api:*"
+  github_repo_pattern = "repo:devarminas/drive-api:*"
   common_tags = {
     Project   = local.project
     ManagedBy = "terraform"
