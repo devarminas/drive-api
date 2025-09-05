@@ -8,9 +8,9 @@ terraform {
   }
 
   backend "s3" {
-    bucket = "devarminas-terraform-state"
-    key    = "drive-api/prod/terraform.tfstate"
-    region = "eu-central-1"
+    bucket         = "devarminas-terraform-state"
+    key            = "drive-api/prod/terraform.tfstate"
+    region         = "eu-central-1"
     dynamodb_table = "devarminas-terraform-locks"
   }
 }
@@ -34,7 +34,7 @@ data "aws_availability_zones" "available" {
 }
 
 data "aws_ecr_repository" "app" {
-  name = "arminasdev/drive-api"
+  name = "devarminas/drive-api"
 }
 
 # VPC Module
@@ -90,21 +90,21 @@ module "iam" {
 module "ecs" {
   source = "../modules/ecs"
 
-  cluster_name         = "drive-api-${local.environment}"
-  service_name         = "drive-api-${local.environment}"
-  container_name       = "drive-api"
-  vpc_id               = module.vpc.vpc_id
-  public_subnet_ids    = module.vpc.public_subnet_ids
-  private_subnet_ids   = module.vpc.private_subnet_ids
-  image_repository     = data.aws_ecr_repository.app.repository_url
-  image_tag            = var.image_tag
-  container_port       = 8080
-  cpu                  = "1024"
-  memory               = "2048"
-  desired_count        = 2
-  health_check_path    = "/healthz"
-  execution_role_arn   = module.iam.ecs_execution_role_arn
-  task_role_arn        = module.iam.ecs_task_role_arn
+  cluster_name       = "drive-api-${local.environment}"
+  service_name       = "drive-api-${local.environment}"
+  container_name     = "drive-api"
+  vpc_id             = module.vpc.vpc_id
+  public_subnet_ids  = module.vpc.public_subnet_ids
+  private_subnet_ids = module.vpc.private_subnet_ids
+  image_repository   = data.aws_ecr_repository.app.repository_url
+  image_tag          = var.image_tag
+  container_port     = 8080
+  cpu                = "1024"
+  memory             = "2048"
+  desired_count      = 2
+  health_check_path  = "/healthz"
+  execution_role_arn = module.iam.ecs_execution_role_arn
+  task_role_arn      = module.iam.ecs_task_role_arn
 
   environment_variables = {
     DB_SECRET_ARN     = module.rds.master_user_secret_arn
@@ -115,8 +115,8 @@ module "ecs" {
   }
 
   # Keep tasks private in prod; NAT + endpoints handle egress
-  assign_public_ip = false
-  task_subnet_ids  = module.vpc.private_subnet_ids
+  assign_public_ip    = false
+  task_subnet_ids     = module.vpc.private_subnet_ids
   prefer_fargate_spot = false
 
   tags = local.common_tags
