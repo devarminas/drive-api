@@ -15,5 +15,7 @@ output "internet_gateway_id" {
 }
 
 output "nat_gateway_id" {
-  value = aws_nat_gateway.this.id
+  # When NAT Gateway is disabled, this resource has count = 0.
+  # Return the first NAT Gateway ID when present; otherwise null.
+  value = length(aws_nat_gateway.this) > 0 ? aws_nat_gateway.this[0].id : null
 }
