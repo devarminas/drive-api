@@ -8,9 +8,9 @@ terraform {
   }
 
   backend "s3" {
-    bucket = "devarminas-terraform-state"
-    key    = "drive-api/dev/terraform.tfstate"
-    region = "eu-central-1"
+    bucket         = "devarminas-terraform-state"
+    key            = "drive-api/dev/terraform.tfstate"
+    region         = "eu-central-1"
     dynamodb_table = "devarminas-terraform-locks"
   }
 }
@@ -34,7 +34,7 @@ data "aws_availability_zones" "available" {
 }
 
 data "aws_ecr_repository" "app" {
-  name = "arminasdev/drive-api"
+  name = "devarminas/drive-api"
 }
 
 # VPC Module
@@ -113,9 +113,9 @@ module "ecs" {
   }
 
   # Cost-optimized dev: run tasks in public subnets with public IP (no NAT)
-  assign_public_ip = true
-  task_subnet_ids  = module.vpc.public_subnet_ids
-  prefer_fargate_spot = true
+  assign_public_ip                   = true
+  task_subnet_ids                    = module.vpc.public_subnet_ids
+  prefer_fargate_spot                = true
   deployment_minimum_healthy_percent = 0
   deployment_maximum_percent         = 100
 

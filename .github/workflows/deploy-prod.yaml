@@ -14,7 +14,7 @@ permissions:
 
 env:
   AWS_REGION: eu-central-1
-  ECR_REPOSITORY: arminasdev/drive-api
+  ECR_REPOSITORY: devarminas/drive-api
   ECS_SERVICE: drive-api-prod
   ECS_CLUSTER: drive-api-prod
   CONTAINER_NAME: drive-api
