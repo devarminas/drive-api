@@ -10,41 +10,54 @@ namespace Drive.Api;
 
 public sealed record AlbumUploadRequest(string FileName);
 
-public sealed record AlbumUploadResponse(string UploadUrl, string Key) : CreationResponse("https://d2znyj7nafxno9.cloudfront.net/" + Key);
+public sealed record AlbumUploadResponse(string UploadUrl, string Key, string Location) : CreationResponse(Location);
 
 public class AlbumUploadEndpoint
 {
 	private static readonly FileExtensionContentTypeProvider Provider = new();
 
 	[WolverinePost("/api/albums/{id}/upload"), Authorize, Tags("Drive")]
-	public static async Task<(AlbumUploadResponse, Upload, UploadTimeout)> AlbumUpload(
-		AlbumUploadRequest request,
-		Album album,
-		UploadMetadata metadata,
-		IAmazonS3 s3Service)
-	{
-		var validFor = TimeSpan.FromMinutes(30);
-		var initiatedDate = DateTime.UtcNow;
-		var expirationDate = initiatedDate.Add(validFor);
-		var presignedUrl = await s3Service.GetPreSignedURLAsync(new GetPreSignedUrlRequest
-		{
-			BucketName = "drive-api-test-bucket",
-			Key = metadata.S3Key,
-			Verb = HttpVerb.PUT,
-			Expires = expirationDate,
-			ContentType = metadata.ContentType,
-			Headers =
-			{
-				["If-None-Match"] = "*"
-			}
-		});
+    public static async Task<(AlbumUploadResponse, Upload, UploadTimeout)> AlbumUpload(
+        AlbumUploadRequest request,
+        Album album,
+        UploadMetadata metadata,
+        IAmazonS3 s3Service,
+        IConfiguration configuration)
+    {
+        var validFor = TimeSpan.FromMinutes(30);
+        var initiatedDate = DateTime.UtcNow;
+        var expirationDate = initiatedDate.Add(validFor);
+        var bucketName = configuration["S3_BUCKET_NAME"] ?? throw new InvalidOperationException("S3_BUCKET_NAME is not configured.");
+        var cloudfrontDomain = configuration["CLOUDFRONT_DOMAIN"] ?? string.Empty;
+        var presignedUrl = await s3Service.GetPreSignedURLAsync(new GetPreSignedUrlRequest
+        {
+            BucketName = bucketName,
+            Key = metadata.S3Key,
+            Verb = HttpVerb.PUT,
+            Expires = expirationDate,
+            ContentType = metadata.ContentType,
+            Headers =
+            {
+                ["If-None-Match"] = "*"
+            }
+        });
 
-		return (
-			new AlbumUploadResponse(presignedUrl, metadata.S3Key),
-			new Upload(metadata.FileId, metadata.S3Key, request.FileName, metadata.ContentType, album.Id),
-			new UploadTimeout(metadata.S3Key, validFor)
-		);
-	}
+        var cfBase = string.IsNullOrWhiteSpace(cloudfrontDomain)
+            ? string.Empty
+            : (cloudfrontDomain.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                ? cloudfrontDomain.TrimEnd('/')
+                : $"https://{cloudfrontDomain.TrimEnd('/')}");
+
+        var location = string.IsNullOrWhiteSpace(cfBase)
+            ? metadata.S3Key
+            : $"{cfBase}/{metadata.S3Key}";
+
+        return (
+            new AlbumUploadResponse(presignedUrl, metadata.S3Key, location),
+            new Upload(metadata.FileId, metadata.S3Key, request.FileName, metadata.ContentType, album.Id),
+            new UploadTimeout(metadata.S3Key, validFor)
+        );
+    }
 
 	public static (UploadMetadata? metadata, IResult result) Load(AlbumUploadRequest request)
 	{
