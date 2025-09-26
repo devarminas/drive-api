@@ -58,8 +58,9 @@ module "rds" {
   private_subnet_ids  = module.vpc.private_subnet_ids
   db_name             = "drive"
   db_username         = "postgres"
-  publicly_accessible = false
-  allowed_cidr_blocks = ["10.0.0.0/16"]
+  publicly_accessible = true
+  # Allow from VPC and optionally developer's IP for direct local access
+  allowed_cidr_blocks = compact(["10.0.0.0/16", var.developer_ip_cidr])
   tags                = local.common_tags
 }
 
@@ -78,10 +79,49 @@ module "iam" {
 
   environment          = local.environment
   secrets_manager_arns = [module.rds.master_user_secret_arn]
+  ssm_parameter_arns   = ["arn:aws:ssm:eu-central-1:*:parameter/drive-api/dev/*"]
   s3_bucket_arns       = [module.s3_cloudfront.bucket_arn]
   sqs_queue_arns       = [module.s3_cloudfront.sqs_queue_arn]
   ecr_repository_arns  = [data.aws_ecr_repository.app.arn]
   tags                 = local.common_tags
+}
+
+# Shared dev configuration in SSM Parameter Store
+resource "aws_ssm_parameter" "dev_s3_bucket_name" {
+  name  = "/drive-api/dev/S3_BUCKET_NAME"
+  type  = "String"
+  value = module.s3_cloudfront.bucket_name
+}
+
+resource "aws_ssm_parameter" "dev_cloudfront_domain" {
+  name  = "/drive-api/dev/CLOUDFRONT_DOMAIN"
+  type  = "String"
+  value = module.s3_cloudfront.cloudfront_domain_name
+}
+
+resource "aws_ssm_parameter" "dev_queues_upload_completed" {
+  name  = "/drive-api/dev/Queues/UploadCompleted"
+  type  = "String"
+  value = module.s3_cloudfront.sqs_queue_name
+}
+
+# Shared dev configuration in SSM Parameter Store
+resource "aws_ssm_parameter" "dev_clerk_authority" {
+  name  = "/drive-api/dev/Clerk/Authority"
+  type  = "String"
+  value = "https://comic-kitten-33.clerk.accounts.dev"
+}
+
+resource "aws_ssm_parameter" "dev_clerk_authorized_party" {
+  name  = "/drive-api/dev/Clerk/AuthorizedParty"
+  type  = "String"
+  value = "http://localhost:5173"
+}
+
+resource "aws_ssm_parameter" "dev_db_secret_name" {
+  name  = "/drive-api/dev/Db/SecretName"
+  type  = "String"
+  value = module.rds.master_user_secret_name
 }
 
 # ECS Module
@@ -105,11 +145,7 @@ module "ecs" {
   task_role_arn      = module.iam.ecs_task_role_arn
 
   environment_variables = {
-    DB_SECRET_ARN     = module.rds.master_user_secret_arn
-    S3_BUCKET_NAME    = module.s3_cloudfront.bucket_name
-    SQS_QUEUE_URL     = module.s3_cloudfront.sqs_queue_url
-    CLOUDFRONT_DOMAIN = module.s3_cloudfront.cloudfront_domain_name
-    ENVIRONMENT       = local.environment
+    ASPNETCORE_ENVIRONMENT = "Development"
   }
 
   # Cost-optimized dev: run tasks in public subnets with public IP (no NAT)

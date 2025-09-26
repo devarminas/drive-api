@@ -15,6 +15,12 @@ variable "secrets_manager_arns" {
   default     = ["*"] # Allows access to all secrets
 }
 
+variable "ssm_parameter_arns" {
+  description = "List of SSM Parameter Store ARNs the task can read"
+  type        = list(string)
+  default     = []
+}
+
 variable "s3_bucket_arns" {
   description = "List of S3 bucket ARNs that App Runner can access"
   type        = list(string)

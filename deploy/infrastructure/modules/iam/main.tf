@@ -91,6 +91,29 @@ resource "aws_iam_role_policy" "ecs_secrets_access" {
   })
 }
 
+# Task Role Policy for SSM Parameter Store (read-only)
+resource "aws_iam_role_policy" "ecs_ssm_access" {
+  count = length(var.ssm_parameter_arns) > 0 ? 1 : 0
+  name  = "SSMParameterReadAccess"
+  role  = aws_iam_role.ecs_task.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "ssm:GetParameter",
+          "ssm:GetParameters",
+          "ssm:GetParametersByPath",
+          "ssm:DescribeParameters"
+        ],
+        Resource = var.ssm_parameter_arns
+      }
+    ]
+  })
+}
+
 # Task Role Policy for S3 Access
 resource "aws_iam_role_policy" "ecs_s3_access" {
   count = length(var.s3_bucket_arns) > 0 ? 1 : 0

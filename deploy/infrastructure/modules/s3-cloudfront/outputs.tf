@@ -32,3 +32,8 @@ output "sqs_queue_arn" {
   description = "ARN of the SQS queue"
   value       = aws_sqs_queue.upload_completed.arn
 }
+
+output "sqs_queue_name" {
+  description = "Name of the SQS queue"
+  value       = aws_sqs_queue.upload_completed.name
+}

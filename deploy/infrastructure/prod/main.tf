@@ -108,9 +108,12 @@ module "ecs" {
 
   environment_variables = {
     DB_SECRET_ARN     = module.rds.master_user_secret_arn
+    DB_HOST           = module.rds.db_endpoint
+    DB_PORT           = tostring(module.rds.db_port)
     S3_BUCKET_NAME    = module.s3_cloudfront.bucket_name
     SQS_QUEUE_URL     = module.s3_cloudfront.sqs_queue_url
     CLOUDFRONT_DOMAIN = module.s3_cloudfront.cloudfront_domain_name
+    UPLOAD_COMPLETED_QUEUE_NAME = module.s3_cloudfront.sqs_queue_name
     ENVIRONMENT       = local.environment
   }
 

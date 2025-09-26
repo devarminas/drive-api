@@ -20,6 +20,10 @@ output "db_port" {
   value = module.rds.db_port
 }
 
+output "rds_master_user_secret_arn" {
+  value = module.rds.master_user_secret_arn
+}
+
 # ECS Outputs
 output "ecs_cluster_id" {
   value = module.ecs.cluster_id
@@ -44,4 +48,8 @@ output "cloudfront_domain_name" {
 
 output "sqs_queue_url" {
   value = module.s3_cloudfront.sqs_queue_url
+}
+
+output "sqs_queue_name" {
+  value = module.s3_cloudfront.sqs_queue_name
 }
